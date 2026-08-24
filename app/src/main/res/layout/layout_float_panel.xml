@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_float_panel"
+    android:elevation="12dp"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- 顶部标题与折叠栏 -->
+    <LinearLayout
+        android:id="@+id/panelHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvPanelTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚡ 扣字控制器"
+            android:textColor="@color/primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvEngineState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_card"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:text="未启动"
+            android:textColor="@color/text_gray"
+            android:textSize="11sp" />
+
+        <ImageView
+            android:id="@+id/btnCollapse"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="8dp"
+        android:background="#334155" />
+
+    <!-- 锁定目标与词库状态 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvTargetInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎯 目标: 未锁定 (在群内@目标即可)"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvDictInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="📚 词库: 默认词库 (0/0)"
+            android:textColor="@color/text_gray"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/tvSentStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="📊 发送: 0 | 撤回: 0 | 下次间隔: 0s"
+            android:textColor="@color/accent"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 快捷调参行 1: 间隔 & 抖动 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="间隔:"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/etInterval"
+            android:layout_width="45dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_input"
+            android:gravity="center"
+            android:inputType="numberDecimal"
+            android:text="3.0"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:text="s"
+            android:textColor="@color/text_gray"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/cbJitter"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:checked="true"
+            android:text="抖动±"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/etJitter"
+            android:layout_width="40dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_input"
+            android:gravity="center"
+            android:inputType="numberDecimal"
+            android:text="0.5"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:text="s"
+            android:textColor="@color/text_gray"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 快捷调参行 2: 撤回 & @ 开关 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <CheckBox
+            android:id="@+id/cbAutoRecall"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="自动撤回"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/etRecallDelay"
+            android:layout_width="40dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_input"
+            android:gravity="center"
+            android:inputType="numberDecimal"
+            android:text="2.0"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:text="s"
+            android:textColor="@color/text_gray"
+            android:textSize="12sp" />
+
+        <CheckBox
+            android:id="@+id/cbAtTarget"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:checked="true"
+            android:text="每条@"
+            android:textColor="@color/text_white"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 操作控制按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnStartResume"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_primary"
+            android:text="🚀 开始"
+            android:textColor="@color/text_dark"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnPause"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_card"
+            android:text="⏸️ 暂停"
+            android:textColor="@color/text_white"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnStopEmergency"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1.2"
+            android:background="@drawable/bg_btn_danger"
+            android:text="🛑 紧急停止"
+            android:textColor="@color/text_white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

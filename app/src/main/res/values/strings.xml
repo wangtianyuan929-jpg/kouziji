@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">扣字神器 V1</string>
+    <string name="title_settings">扣字控制台</string>
+    <string name="start_service">开启扣字悬浮窗</string>
+    <string name="stop_service">关闭悬浮窗</string>
+</resources>
