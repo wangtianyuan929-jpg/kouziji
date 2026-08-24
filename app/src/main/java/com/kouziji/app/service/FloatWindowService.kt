@@ -148,49 +148,50 @@ class FloatWindowService : Service() {
 
     private fun createFloatBall() {
         val wm = windowManager ?: return
-        val inflater = LayoutInflater.from(this)
-        floatBallView = inflater.inflate(R.layout.layout_float_ball, null)
-
-        var initialX = 0
-        var initialY = 0
-        var initialTouchX = 0f
-        var initialTouchY = 0f
-        var isClick = false
-
-        floatBallView?.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = ballParams.x
-                    initialY = ballParams.y
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
-                    isClick = true
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - initialTouchX
-                    val dy = event.rawY - initialTouchY
-                    if (abs(dx) > 10 || abs(dy) > 10) {
-                        isClick = false
-                    }
-                    ballParams.x = (initialX + dx).toInt()
-                    ballParams.y = (initialY + dy).toInt()
-                    try {
-                        wm.updateViewLayout(floatBallView, ballParams)
-                    } catch (e: Exception) {}
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    if (isClick) {
-                        showPanel()
-                    }
-                    true
-                }
-                else -> false
-            }
-        }
-
         try {
+            val contextThemeWrapper = android.view.ContextThemeWrapper(this, R.style.Theme_KouZiJi)
+            val inflater = LayoutInflater.from(contextThemeWrapper)
+            floatBallView = inflater.inflate(R.layout.layout_float_ball, null)
+
+            var initialX = 0
+            var initialY = 0
+            var initialTouchX = 0f
+            var initialTouchY = 0f
+            var isClick = false
+
+            floatBallView?.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialX = ballParams.x
+                        initialY = ballParams.y
+                        initialTouchX = event.rawX
+                        initialTouchY = event.rawY
+                        isClick = true
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = event.rawX - initialTouchX
+                        val dy = event.rawY - initialTouchY
+                        if (abs(dx) > 10 || abs(dy) > 10) {
+                            isClick = false
+                        }
+                        ballParams.x = (initialX + dx).toInt()
+                        ballParams.y = (initialY + dy).toInt()
+                        try {
+                            wm.updateViewLayout(floatBallView, ballParams)
+                        } catch (e: Exception) {}
+                        true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        if (isClick) {
+                            showPanel()
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            }
+
             wm.addView(floatBallView, ballParams)
         } catch (e: Exception) {
             LogManager.e("添加悬浮球失败: ${e.message}")
@@ -200,86 +201,92 @@ class FloatWindowService : Service() {
 
     private fun createFloatPanel() {
         if (floatPanelView != null) return
-        val inflater = LayoutInflater.from(this)
-        floatPanelView = inflater.inflate(R.layout.layout_float_panel, null)
+        try {
+            val contextThemeWrapper = android.view.ContextThemeWrapper(this, R.style.Theme_KouZiJi)
+            val inflater = LayoutInflater.from(contextThemeWrapper)
+            floatPanelView = inflater.inflate(R.layout.layout_float_panel, null)
 
-        val app = KouZiApplication.instance
-        val config = app.appConfig
+            val app = KouZiApplication.instance
+            val config = app.appConfig
 
-        // 绑定关闭/折叠按钮
-        floatPanelView?.findViewById<ImageView>(R.id.btnCollapse)?.setOnClickListener {
-            hidePanel()
-        }
-
-        // 绑定调参输入框与复选框
-        val etInterval = floatPanelView?.findViewById<EditText>(R.id.etInterval)
-        val cbJitter = floatPanelView?.findViewById<CheckBox>(R.id.cbJitter)
-        val etJitter = floatPanelView?.findViewById<EditText>(R.id.etJitter)
-        val cbAutoRecall = floatPanelView?.findViewById<CheckBox>(R.id.cbAutoRecall)
-        val etRecallDelay = floatPanelView?.findViewById<EditText>(R.id.etRecallDelay)
-        val cbAtTarget = floatPanelView?.findViewById<CheckBox>(R.id.cbAtTarget)
-
-        etInterval?.setText(config.baseIntervalSeconds.toString())
-        cbJitter?.isChecked = config.jitterEnabled
-        etJitter?.setText(config.jitterRangeSeconds.toString())
-        cbAutoRecall?.isChecked = config.autoRecallEnabled
-        etRecallDelay?.setText(config.recallDelaySeconds.toString())
-        cbAtTarget?.isChecked = config.atTargetEnabled
-
-        // 按钮操作
-        val btnStartResume = floatPanelView?.findViewById<Button>(R.id.btnStartResume)
-        val btnPause = floatPanelView?.findViewById<Button>(R.id.btnPause)
-        val btnStopEmergency = floatPanelView?.findViewById<Button>(R.id.btnStopEmergency)
-
-        btnStartResume?.setOnClickListener {
-            syncParamsFromUi()
-            val state = app.kouziEngine.currentState
-            if (state == EngineState.PAUSED) {
-                app.kouziEngine.resume()
-            } else {
-                val res = app.kouziEngine.start()
-                if (res.isFailure) {
-                    Toast.makeText(this, res.exceptionOrNull()?.message ?: "启动失败", Toast.LENGTH_SHORT).show()
-                }
+            // 绑定关闭/折叠按钮
+            floatPanelView?.findViewById<ImageView>(R.id.btnCollapse)?.setOnClickListener {
+                hidePanel()
             }
-        }
 
-        btnPause?.setOnClickListener {
-            app.kouziEngine.pause()
-        }
+            // 绑定调参输入框与复选框
+            val etInterval = floatPanelView?.findViewById<EditText>(R.id.etInterval)
+            val cbJitter = floatPanelView?.findViewById<CheckBox>(R.id.cbJitter)
+            val etJitter = floatPanelView?.findViewById<EditText>(R.id.etJitter)
+            val cbAutoRecall = floatPanelView?.findViewById<CheckBox>(R.id.cbAutoRecall)
+            val etRecallDelay = floatPanelView?.findViewById<EditText>(R.id.etRecallDelay)
+            val cbAtTarget = floatPanelView?.findViewById<CheckBox>(R.id.cbAtTarget)
 
-        btnStopEmergency?.setOnClickListener {
-            app.kouziEngine.stop()
-            Toast.makeText(this, "扣字已紧急停止！", Toast.LENGTH_SHORT).show()
-        }
+            etInterval?.setText(config.baseIntervalSeconds.toString())
+            cbJitter?.isChecked = config.jitterEnabled
+            etJitter?.setText(config.jitterRangeSeconds.toString())
+            cbAutoRecall?.isChecked = config.autoRecallEnabled
+            etRecallDelay?.setText(config.recallDelaySeconds.toString())
+            cbAtTarget?.isChecked = config.atTargetEnabled
 
-        // 标题栏拖拽移动面板
-        val header = floatPanelView?.findViewById<View>(R.id.panelHeader)
-        var initialX = 0
-        var initialY = 0
-        var initialTouchX = 0f
-        var initialTouchY = 0f
-        header?.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = panelParams.x
-                    initialY = panelParams.y
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    panelParams.x = (initialX + (event.rawX - initialTouchX)).toInt()
-                    panelParams.y = (initialY + (event.rawY - initialTouchY)).toInt()
-                    if (isPanelShowing && floatPanelView != null) {
-                        try {
-                            windowManager?.updateViewLayout(floatPanelView, panelParams)
-                        } catch (e: Exception) {}
+            // 按钮操作
+            val btnStartResume = floatPanelView?.findViewById<Button>(R.id.btnStartResume)
+            val btnPause = floatPanelView?.findViewById<Button>(R.id.btnPause)
+            val btnStopEmergency = floatPanelView?.findViewById<Button>(R.id.btnStopEmergency)
+
+            btnStartResume?.setOnClickListener {
+                syncParamsFromUi()
+                val state = app.kouziEngine.currentState
+                if (state == EngineState.PAUSED) {
+                    app.kouziEngine.resume()
+                } else {
+                    val res = app.kouziEngine.start()
+                    if (res.isFailure) {
+                        Toast.makeText(this, res.exceptionOrNull()?.message ?: "启动失败", Toast.LENGTH_SHORT).show()
                     }
-                    true
                 }
-                else -> false
             }
+
+            btnPause?.setOnClickListener {
+                app.kouziEngine.pause()
+            }
+
+            btnStopEmergency?.setOnClickListener {
+                app.kouziEngine.stop()
+                Toast.makeText(this, "扣字已紧急停止！", Toast.LENGTH_SHORT).show()
+            }
+
+            // 标题栏拖拽移动面板
+            val header = floatPanelView?.findViewById<View>(R.id.panelHeader)
+            var initialX = 0
+            var initialY = 0
+            var initialTouchX = 0f
+            var initialTouchY = 0f
+            header?.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialX = panelParams.x
+                        initialY = panelParams.y
+                        initialTouchX = event.rawX
+                        initialTouchY = event.rawY
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        panelParams.x = (initialX + (event.rawX - initialTouchX)).toInt()
+                        panelParams.y = (initialY + (event.rawY - initialTouchY)).toInt()
+                        if (isPanelShowing && floatPanelView != null) {
+                            try {
+                                windowManager?.updateViewLayout(floatPanelView, panelParams)
+                            } catch (e: Exception) {}
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            }
+        } catch (e: Exception) {
+            LogManager.e("创建控制面板失败: ${e.message}")
+            Toast.makeText(this, "创建面板异常: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
