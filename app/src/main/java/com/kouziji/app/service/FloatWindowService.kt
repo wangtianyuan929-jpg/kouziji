@@ -287,10 +287,10 @@ class FloatWindowService : Service() {
             tvEngineState.text = stats.state.desc
             tvEngineState.setTextColor(
                 when (stats.state) {
-                    EngineState.RUNNING -> resources.getColor(R.color.primary)
-                    EngineState.PAUSED -> resources.getColor(R.color.warning)
-                    EngineState.ERROR -> resources.getColor(R.color.danger)
-                    else -> resources.getColor(R.color.text_gray)
+                    EngineState.RUNNING -> androidx.core.content.ContextCompat.getColor(this, R.color.primary)
+                    EngineState.PAUSED -> androidx.core.content.ContextCompat.getColor(this, R.color.warning)
+                    EngineState.ERROR -> androidx.core.content.ContextCompat.getColor(this, R.color.danger)
+                    else -> androidx.core.content.ContextCompat.getColor(this, R.color.text_gray)
                 }
             )
 
