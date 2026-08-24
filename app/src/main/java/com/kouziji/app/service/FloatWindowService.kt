@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -24,16 +25,19 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import com.kouziji.app.KouZiApplication
 import com.kouziji.app.R
 import com.kouziji.app.core.EngineState
 import com.kouziji.app.core.EngineStats
+import com.kouziji.app.core.LogManager
 import com.kouziji.app.ui.MainActivity
 import kotlin.math.abs
 
 class FloatWindowService : Service() {
 
-    private lateinit var windowManager: WindowManager
+    private var windowManager: WindowManager? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var floatBallView: View? = null
@@ -48,48 +52,63 @@ class FloatWindowService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        try {
+            windowManager = getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+            startForegroundNotification()
+            initLayoutParams()
+            createFloatBall()
 
-        startForegroundNotification()
-        initLayoutParams()
-        createFloatBall()
-        createFloatPanel()
-
-        // 监听引擎状态变化刷新 UI
-        val app = KouZiApplication.instance
-        app.kouziEngine.onStatsChanged = { stats ->
-            mainHandler.post {
-                updatePanelStats(stats)
+            // 监听引擎状态变化刷新 UI
+            val app = KouZiApplication.instance
+            app.kouziEngine.onStatsChanged = { stats ->
+                mainHandler.post {
+                    updatePanelStats(stats)
+                }
             }
+            LogManager.s("悬浮窗服务启动成功！")
+        } catch (e: Exception) {
+            LogManager.e("悬浮窗启动异常: ${e.message}")
+            Toast.makeText(this, "悬浮窗启动异常: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun startForegroundNotification() {
-        val channelId = "kouziji_float_channel"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "扣字悬浮窗服务",
-                NotificationManager.IMPORTANCE_LOW
+        try {
+            val channelId = "kouziji_float_channel"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "扣字悬浮窗服务",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+                val manager = getSystemService(NotificationManager::class.java)
+                manager?.createNotificationChannel(channel)
+            }
+
+            val intent = Intent(this, MainActivity::class.java)
+            val pendingIntent = PendingIntent.getActivity(
+                this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+
+            val notification: Notification = NotificationCompat.Builder(this, channelId)
+                .setContentTitle("扣字神器已就绪")
+                .setContentText("悬浮窗运行中，随时可展开控制")
+                .setSmallIcon(android.R.drawable.ic_menu_send)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+
+            val serviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                0
+            }
+
+            ServiceCompat.startForeground(this, 1001, notification, serviceType)
+        } catch (e: Exception) {
+            LogManager.w("前台服务通知设置警告: ${e.message}")
         }
-
-        val intent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("扣字神器已就绪")
-            .setContentText("悬浮窗运行中，点击进入主配置")
-            .setSmallIcon(android.R.drawable.ic_menu_send)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        startForeground(1001, notification)
     }
 
     private fun initLayoutParams() {
@@ -110,24 +129,25 @@ class FloatWindowService : Service() {
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 20
-            y = 300
+            y = 350
         }
 
-        // 控制面板 LayoutParams (需要可以输入焦点)
+        // 控制面板 LayoutParams
         panelParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             windowType,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 50
-            y = 250
+            x = 40
+            y = 200
         }
     }
 
     private fun createFloatBall() {
+        val wm = windowManager ?: return
         val inflater = LayoutInflater.from(this)
         floatBallView = inflater.inflate(R.layout.layout_float_ball, null)
 
@@ -137,7 +157,7 @@ class FloatWindowService : Service() {
         var initialTouchY = 0f
         var isClick = false
 
-        floatBallView?.setOnTouchListener { view, event ->
+        floatBallView?.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = ballParams.x
@@ -155,7 +175,9 @@ class FloatWindowService : Service() {
                     }
                     ballParams.x = (initialX + dx).toInt()
                     ballParams.y = (initialY + dy).toInt()
-                    windowManager.updateViewLayout(floatBallView, ballParams)
+                    try {
+                        wm.updateViewLayout(floatBallView, ballParams)
+                    } catch (e: Exception) {}
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -168,10 +190,16 @@ class FloatWindowService : Service() {
             }
         }
 
-        windowManager.addView(floatBallView, ballParams)
+        try {
+            wm.addView(floatBallView, ballParams)
+        } catch (e: Exception) {
+            LogManager.e("添加悬浮球失败: ${e.message}")
+            Toast.makeText(this, "添加悬浮球失败: 请确保已允许悬浮窗权限", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun createFloatPanel() {
+        if (floatPanelView != null) return
         val inflater = LayoutInflater.from(this)
         floatPanelView = inflater.inflate(R.layout.layout_float_panel, null)
 
@@ -204,7 +232,6 @@ class FloatWindowService : Service() {
         val btnStopEmergency = floatPanelView?.findViewById<Button>(R.id.btnStopEmergency)
 
         btnStartResume?.setOnClickListener {
-            // 同步最新设置
             syncParamsFromUi()
             val state = app.kouziEngine.currentState
             if (state == EngineState.PAUSED) {
@@ -245,7 +272,9 @@ class FloatWindowService : Service() {
                     panelParams.x = (initialX + (event.rawX - initialTouchX)).toInt()
                     panelParams.y = (initialY + (event.rawY - initialTouchY)).toInt()
                     if (isPanelShowing && floatPanelView != null) {
-                        windowManager.updateViewLayout(floatPanelView, panelParams)
+                        try {
+                            windowManager?.updateViewLayout(floatPanelView, panelParams)
+                        } catch (e: Exception) {}
                     }
                     true
                 }
@@ -287,10 +316,10 @@ class FloatWindowService : Service() {
             tvEngineState.text = stats.state.desc
             tvEngineState.setTextColor(
                 when (stats.state) {
-                    EngineState.RUNNING -> androidx.core.content.ContextCompat.getColor(this, R.color.primary)
-                    EngineState.PAUSED -> androidx.core.content.ContextCompat.getColor(this, R.color.warning)
-                    EngineState.ERROR -> androidx.core.content.ContextCompat.getColor(this, R.color.danger)
-                    else -> androidx.core.content.ContextCompat.getColor(this, R.color.text_gray)
+                    EngineState.RUNNING -> ContextCompat.getColor(this, R.color.primary)
+                    EngineState.PAUSED -> ContextCompat.getColor(this, R.color.warning)
+                    EngineState.ERROR -> ContextCompat.getColor(this, R.color.danger)
+                    else -> ContextCompat.getColor(this, R.color.text_gray)
                 }
             )
 
@@ -317,22 +346,30 @@ class FloatWindowService : Service() {
     }
 
     private fun showPanel() {
-        if (!isPanelShowing && floatPanelView != null) {
+        val wm = windowManager ?: return
+        if (!isPanelShowing) {
+            createFloatPanel()
             syncParamsFromUi()
-            // 刷新一次状态
             updatePanelStats(EngineStats(state = KouZiApplication.instance.kouziEngine.currentState))
             panelParams.x = ballParams.x.coerceAtMost(300)
             panelParams.y = ballParams.y.coerceAtMost(600)
-            windowManager.addView(floatPanelView, panelParams)
-            floatBallView?.visibility = View.GONE
-            isPanelShowing = true
+            try {
+                wm.addView(floatPanelView, panelParams)
+                floatBallView?.visibility = View.GONE
+                isPanelShowing = true
+            } catch (e: Exception) {
+                LogManager.e("展开面板失败: ${e.message}")
+            }
         }
     }
 
     private fun hidePanel() {
+        val wm = windowManager ?: return
         if (isPanelShowing && floatPanelView != null) {
             syncParamsFromUi()
-            windowManager.removeView(floatPanelView)
+            try {
+                wm.removeView(floatPanelView)
+            } catch (e: Exception) {}
             floatBallView?.visibility = View.VISIBLE
             isPanelShowing = false
         }
@@ -340,11 +377,12 @@ class FloatWindowService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        val wm = windowManager
         if (isPanelShowing && floatPanelView != null) {
-            windowManager.removeView(floatPanelView)
+            try { wm?.removeView(floatPanelView) } catch (e: Exception) {}
         }
         if (floatBallView != null) {
-            windowManager.removeView(floatBallView)
+            try { wm?.removeView(floatBallView) } catch (e: Exception) {}
         }
         KouZiApplication.instance.kouziEngine.stop()
     }

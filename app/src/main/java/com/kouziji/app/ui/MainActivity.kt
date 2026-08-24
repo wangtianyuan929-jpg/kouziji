@@ -279,22 +279,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleFloatService() {
         saveUiConfig()
-        val intent = Intent(this, FloatWindowService::class.java)
-        if (!isServiceRunning) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
+        try {
+            val intent = Intent(this, FloatWindowService::class.java)
+            if (!isServiceRunning) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+                isServiceRunning = true
+                binding.btnToggleFloat.text = "关闭悬浮窗"
+                binding.btnToggleFloat.setBackgroundResource(R.drawable.bg_btn_danger)
+                Toast.makeText(this, "扣字悬浮球已在屏幕出现！", Toast.LENGTH_SHORT).show()
             } else {
-                startService(intent)
+                stopService(intent)
+                isServiceRunning = false
+                binding.btnToggleFloat.text = "开启悬浮窗"
+                binding.btnToggleFloat.setBackgroundResource(R.drawable.bg_btn_primary)
             }
-            isServiceRunning = true
-            binding.btnToggleFloat.text = "关闭悬浮窗"
-            binding.btnToggleFloat.setBackgroundResource(R.drawable.bg_btn_danger)
-            Toast.makeText(this, "扣字悬浮球已在屏幕出现！", Toast.LENGTH_SHORT).show()
-        } else {
-            stopService(intent)
-            isServiceRunning = false
-            binding.btnToggleFloat.text = "开启悬浮窗"
-            binding.btnToggleFloat.setBackgroundResource(R.drawable.bg_btn_primary)
+        } catch (e: Exception) {
+            LogManager.e("启动悬浮窗失败: ${e.message}")
+            Toast.makeText(this, "启动失败: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }
