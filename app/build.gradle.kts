@@ -47,13 +47,18 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     
+    // Activity & Lifecycle 协程扩展
+    implementation("androidx.activity:activity-ktx:1.9.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
+
     // 网络与 OneBot 11 (HTTP & WebSocket)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     
     // JSON 解析
     implementation("com.google.code.gson:gson:2.10.1")
     
-    // 协程支持
+    // 协程核心
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
