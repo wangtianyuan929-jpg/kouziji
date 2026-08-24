@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun testNapCatConnection() {
-        binding.tvNapCatStatus.text = "正在检测 NapCat 连接..."
+        binding.tvNapCatStatus.text = "正在自动探测 NapCat 连接..."
         binding.tvNapCatStatus.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_gray))
 
         lifecycleScope.launch {
@@ -168,14 +168,17 @@ class MainActivity : AppCompatActivity() {
             val res = app.oneBotClient.getLoginInfo()
             if (res.isSuccess) {
                 val (userId, nickname) = res.getOrThrow()
-                binding.tvNapCatStatus.text = "🟢 NapCat 已连接！QQ: $nickname ($userId)"
+                binding.etHost.setText(app.appConfig.napcatHttpHost)
+                app.saveConfig()
+                app.oneBotClient.startWebSocket()
+                binding.tvNapCatStatus.text = "🟢 NapCat 已自动连通！QQ: $nickname ($userId)"
                 binding.tvNapCatStatus.setTextColor(androidx.core.content.ContextCompat.getColor(this@MainActivity, R.color.primary))
-                LogManager.s("NapCat 接口连接成功！当前挂机账号: $nickname ($userId)")
+                LogManager.s("NapCat 接口自动连接成功！当前挂机账号: $nickname ($userId)")
             } else {
                 val err = res.exceptionOrNull()?.message ?: "连接失败"
-                binding.tvNapCatStatus.text = "🔴 NapCat 连接失败: $err"
+                binding.tvNapCatStatus.text = "🔴 未检测到在线的 NapCat (请确认 Podroid 已开启)"
                 binding.tvNapCatStatus.setTextColor(androidx.core.content.ContextCompat.getColor(this@MainActivity, R.color.danger))
-                LogManager.w("NapCat 接口连接失败，请确认虚拟机中 NapCat 是否开启 3000 端口")
+                LogManager.w("未检测到在线的 NapCat，请确认 Podroid 正在后台运行")
             }
         }
     }

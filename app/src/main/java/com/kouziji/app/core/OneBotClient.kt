@@ -90,16 +90,84 @@ class OneBotClient(private val configProvider: () -> AppConfig) {
     }
 
     /**
+     * 智能自动探测 NapCat 地址（无需用户手动输入 IP）
+     */
+    suspend fun autoDiscoverAndConnect(): Result<Pair<Long, String>> {
+        return withContext(Dispatchers.IO) {
+            val candidateHosts = mutableSetOf<String>()
+            val c = configProvider()
+            if (c.napcatHttpHost.isNotBlank()) candidateHosts.add(c.napcatHttpHost)
+            candidateHosts.add("127.0.0.1")
+            candidateHosts.add("localhost")
+            candidateHosts.add("10.0.2.2")
+            candidateHosts.add("10.0.2.15")
+
+            // 动态收集手机本机所有网络接口的 IPv4 (Wi-Fi, 移动网络, 虚拟局域网等)
+            try {
+                val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+                while (interfaces.hasMoreElements()) {
+                    val networkInterface = interfaces.nextElement()
+                    val addresses = networkInterface.inetAddresses
+                    while (addresses.hasMoreElements()) {
+                        val addr = addresses.nextElement()
+                        if (!addr.isLoopbackAddress && addr is java.net.Inet4Address) {
+                            val ip = addr.hostAddress ?: continue
+                            candidateHosts.add(ip)
+                            // 同时加入该网段常见网关和广播
+                            val prefix = ip.substringBeforeLast(".")
+                            candidateHosts.add("$prefix.1")
+                            candidateHosts.add("$prefix.2")
+                            candidateHosts.add("$prefix.15")
+                        }
+                    }
+                }
+            } catch (e: Exception) {}
+
+            for (host in candidateHosts) {
+                try {
+                    val url = "http://$host:${c.napcatHttpPort}/get_login_info"
+                    val requestBuilder = Request.Builder().url(url).post("{}".toRequestBody(jsonMediaType))
+                    if (c.napcatToken.isNotBlank()) {
+                        requestBuilder.addHeader("Authorization", "Bearer ${c.napcatToken}")
+                    }
+                    val resp = client.newCall(requestBuilder.build()).execute()
+                    if (resp.isSuccessful) {
+                        val body = resp.body?.string() ?: ""
+                        val json = JsonParser.parseString(body).asJsonObject
+                        if (json.get("status")?.asString == "ok") {
+                            val data = json.getAsJsonObject("data")
+                            val userId = data.get("user_id").asLong
+                            val nickname = data.get("nickname").asString
+                            
+                            // 自动更新配置中的有效 Host
+                            c.napcatHttpHost = host
+                            LogManager.s("🎉 智能探针命中 NapCat 通道: $host:${c.napcatHttpPort} (QQ: $nickname)")
+                            return@withContext Result.success(Pair(userId, nickname))
+                        }
+                    }
+                } catch (e: Exception) {
+                    // 尝试下一个候选地址
+                }
+            }
+            Result.failure(Exception("自动探测完成，未发现已在线的 NapCat 服务"))
+        }
+    }
+
+    /**
      * 获取登录 QQ 信息
      */
     suspend fun getLoginInfo(): Result<Pair<Long, String>> {
         val res = postApi("get_login_info")
-        return res.mapCatching { json ->
-            val data = json.getAsJsonObject("data")
-            val userId = data.get("user_id").asLong
-            val nickname = data.get("nickname").asString
-            Pair(userId, nickname)
+        if (res.isSuccess) {
+            return res.mapCatching { json ->
+                val data = json.getAsJsonObject("data")
+                val userId = data.get("user_id").asLong
+                val nickname = data.get("nickname").asString
+                Pair(userId, nickname)
+            }
         }
+        // 如果当前配置的 host 失败，自动尝试全网段智能探针
+        return autoDiscoverAndConnect()
     }
 
     /**
